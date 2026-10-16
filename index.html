@@ -315,7 +315,11 @@ nav.tabs button{font-size:13px;padding:0 3px}
             <option value="">Selecciona al trabajador</option>
           </select>
         </label>
-      </div>
+      </div><details id="pQuick" style="margin-top:8px">
+<summary>+ Agregar trabajador nuevo</summary>
+<div class="two"><label>Nombre<input id="pqNombre" autocomplete="off"></label><label>RUT<input id="pqRut" autocomplete="off" placeholder="12.345.678-5"></label></div>
+<button class="btn full" id="pqAdd" style="margin-top:10px">Agregar y seleccionar</button>
+      </details>
       <div id="pCursoAlert" style="margin-top:8px"></div>
       <div id="pCursoManage" class="hide" style="margin-top:8px;border:1px dashed var(--line);border-radius:8px;padding:10px">
         <label style="margin:0">Registrar o actualizar el curso "<span id="pCursoManageNombre"></span>" para este trabajador</label>
@@ -1056,7 +1060,19 @@ $('#pTipo').addEventListener('change',renderPermisosChecklist);
 $('#pEjecutor').addEventListener('change',renderCursoAlert);
 ['pUbicacion','pDesc','pInicio','pTermino'].forEach(id=>$('#'+id).addEventListener('input',updPermisosConfirm));
 $('#pDecl').addEventListener('change',updPermisosConfirm);
-
+let lastEj='';$('#pEjecutor').addEventListener('change',()=>{lastEj=$('#pEjecutor').value;});$('#pTipo').addEventListener('change',()=>{const s=$('#pEjecutor');if(lastEj&&Array.from(s.options).some(o=>o.value===lastEj)){s.value=lastEj;renderCursoAlert();}});$('#pqRut').addEventListener('blur',()=>{$('#pqRut').value=fmtRut($('#pqRut').value);});
+$('#pqAdd').addEventListener('click',()=>{
+  const err=addWorker($('#pqNombre').value,$('#pqRut').value);
+  if(err){toast(err);return;}
+  save();
+  const nw=S.workers[S.workers.length-1];
+  $('#pqNombre').value='';$('#pqRut').value='';
+  renderWorkers();renderPermisosEjecutorSelect();
+  $('#pEjecutor').value=String(nw.id);
+  $('#pEjecutor').dispatchEvent(new Event('change'));
+  $('#pQuick').open=false;
+  toast(nw.nombre+' agregado y seleccionado.');
+});
 function missingPermisos(){
   const m=[];
   const tipo=$('#pTipo').value,cfg=PERMISOS_CFG[tipo];
@@ -1070,7 +1086,7 @@ function missingPermisos(){
 
   const c1=$('#pSig1'),c2=$('#pSig2'),c3=$('#pSig3');
   const ctx1=c1.getContext('2d'),ctx2=c2.getContext('2d'),ctx3=c3.getContext('2d');
-  const hasInk=(ctx,w,h)=>{try{const d=ctx.getImageData(0,0,w,h).data;return Array.from(d).some(v=>v<200);}catch(e){return false;}};
+const hasInk=(ctx)=>ctx===ctx1?padP1.signed():ctx===ctx2?padP2.signed():padP3.signed();
   if(!hasInk(ctx1,c1.width,c1.height))m.push('firma del ejecutor');
   if(!hasInk(ctx2,c2.width,c2.height))m.push('firma del supervisor');
   if(!hasInk(ctx3,c3.width,c3.height))m.push('firma del prevencionista');
